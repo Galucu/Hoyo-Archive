@@ -52,11 +52,31 @@
             color: #ece5d3;
             min-height: 100vh;
             overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Layer Background Utama (Foto Dynamic) */
+        #main-bg-layer {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 1s ease-in-out;
+            opacity: 0.25; /* Transparansi agar foto tidak mengganggu teks */
+        }
+
+        /* Layer Cahaya dan Pola Bintang (Gradient) */
+        #gradient-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
             background-image: 
                 radial-gradient(circle at 15% 50%, rgba(211, 188, 142, 0.05), transparent 40%),
                 radial-gradient(circle at 85% 30%, rgba(74, 114, 178, 0.08), transparent 50%),
                 url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSIwLjUiIGZpbGw9IiNmZmYiIG9wYWNpdHk9IjAuNSIvPjxjaXJjbGUgY3g9IjI1MCIgY3k9IjE1MCIgcj0iMSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iMC4zIi8+PGNpcmNsZSBjeD0iMTUwIiBjeT0iMzAwIiByPSIwLjgiIGZpbGw9IiNmZmYiIG9wYWNpdHk9IjAuNCIvPjwvc3ZnPg==');
-            background-attachment: fixed;
+            pointer-events: none;
         }
 
         .hoyo-panel {
@@ -155,6 +175,10 @@
 </head>
 <body class="relative">
 
+    <!-- Background Layers Baru -->
+    <div id="main-bg-layer"></div>
+    <div id="gradient-overlay"></div>
+
     <!-- Top Navigation -->
     <nav class="sticky top-0 z-40 bg-black/40 backdrop-blur-xl border-b border-genshin-gold/20 px-6 py-4">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
@@ -217,7 +241,7 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold tracking-widest text-genshin-gold/70 uppercase mb-2">Email</label>
-                        <input type="email" id="loginEmail" required placeholder="owner@gmail.com" class="hoyo-input w-full rounded-lg px-4 py-3">
+                        <input type="email" id="loginEmail" required placeholder="owner@email.com" class="hoyo-input w-full rounded-lg px-4 py-3">
                     </div>
                     <div>
                         <label class="block text-xs font-bold tracking-widest text-genshin-gold/70 uppercase mb-2">Password</label>
@@ -370,6 +394,7 @@
 
         // Variable untuk menyimpan Setting Background dari Cloud (Default Fallbacks)
         let appSettings = {
+            main_bg: '', // Tambahan untuk Main Background
             genshin_bg: 'https://images.unsplash.com/photo-1580136608260-4eb11f4b24fe?auto=format&fit=crop&q=80',
             hsr_bg: 'https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?auto=format&fit=crop&q=80'
         };
@@ -461,13 +486,19 @@
         
         async function fetchDataCloud() {
             try {
-                // Fetch Settings untuk Background Menu
+                // Fetch Settings untuk Background Menu & Main BG
                 const { data: sData, error: sErr } = await _supabase.from('settings').select('*');
                 if (!sErr && sData) {
                     sData.forEach(setting => {
                         if (setting.key === 'genshin_bg') appSettings.genshin_bg = setting.value;
                         if (setting.key === 'hsr_bg') appSettings.hsr_bg = setting.value;
+                        if (setting.key === 'main_bg') appSettings.main_bg = setting.value;
                     });
+                    
+                    // Apply Main Background jika ada datanya di Supabase
+                    if(appSettings.main_bg) {
+                        document.getElementById('main-bg-layer').style.backgroundImage = `url('${appSettings.main_bg}')`;
+                    }
                 }
 
                 // Fetch data utama
