@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tambahan ini untuk mengecoh blokir gambar dari HoYoLAB -->
+    <meta name="referrer" content="no-referrer">
     <title>Tsukasa's SavePoint - Cloud Journey Archive</title>
     
     <!-- Supabase Library -->
@@ -171,6 +173,9 @@
             -webkit-box-orient: vertical;  
             overflow: hidden;
         }
+
+        /* Custom Scrollbar for Dropdown Search */
+        .search-scrollbar::-webkit-scrollbar { width: 4px; }
     </style>
 </head>
 <body class="relative">
@@ -198,8 +203,33 @@
                 </div>
             </div>
 
-            <!-- Action Buttons (Login/Add) -->
-            <div class="flex items-center gap-3">
+            <!-- Action Buttons (Login/Add/Search) -->
+            <div class="flex items-center gap-4">
+                
+                <!-- FITUR BARU: UNIVERSAL SEARCH BAR -->
+                <div class="relative hidden md:block z-50" id="searchContainer">
+                    <div class="relative flex items-center">
+                        <svg class="w-4 h-4 absolute left-3 text-genshin-gold/50 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        
+                        <input type="text" id="searchInput" placeholder="Search archive..." autocomplete="off"
+                            class="hoyo-input pl-10 pr-10 py-2 rounded-full text-sm w-48 focus:w-72 transition-all duration-300 placeholder-genshin-gold/40" 
+                            oninput="debounceSearch(event)">
+                        
+                        <!-- Loading Spinner -->
+                        <svg id="searchSpinner" class="animate-spin w-4 h-4 absolute right-3 text-genshin-gold hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
+
+                    <!-- Dropdown Container -->
+                    <div id="searchDropdown" class="absolute top-full mt-2 right-0 w-[300px] hoyo-panel rounded-xl shadow-2xl border border-genshin-gold/20 hidden flex-col max-h-[60vh] overflow-y-auto search-scrollbar">
+                        <div id="searchResultsArea" class="p-2 space-y-4">
+                            <!-- Hasil pencarian akan disuntikkan oleh JavaScript di sini -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pembatas Visual -->
+                <div class="w-[1px] h-6 bg-genshin-gold/20 hidden md:block"></div>
+
                 <button id="btnNavLogin" onclick="openLoginModal()" class="flex items-center gap-2 text-genshin-light/50 hover:text-genshin-gold transition-colors px-3 py-2 rounded-full border border-transparent hover:border-genshin-gold/30">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                     <span class="text-xs font-bold tracking-widest hidden sm:block">LOGIN</span>
@@ -392,11 +422,13 @@
         let currentState = { view: 'menu', selectedGame: null, selectedFriend: null };
         let currentUser = null; 
 
-        // Variable untuk menyimpan Setting Background dari Cloud (Default Fallbacks)
+        // Variable untuk menyimpan Setting Background dari Cloud
         let appSettings = {
             main_bg: '', // Tambahan untuk Main Background
             genshin_bg: 'https://images.unsplash.com/photo-1580136608260-4eb11f4b24fe?auto=format&fit=crop&q=80',
-            hsr_bg: 'https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?auto=format&fit=crop&q=80'
+            hsr_bg: 'https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?auto=format&fit=crop&q=80',
+            // DEFAULT FALLBACK EMPTY STATE IMAGE
+            empty_state_img: 'https://upload-os-bbs.hoyolab.com/upload/2021/08/11/17096570/8628bfcc47bc483af76fcb2fc809d435_401676839335602497.png'
         };
 
         // ==========================================
@@ -486,13 +518,15 @@
         
         async function fetchDataCloud() {
             try {
-                // Fetch Settings untuk Background Menu & Main BG
+                // Fetch Settings untuk Background Menu, Main BG, dan Empty State
                 const { data: sData, error: sErr } = await _supabase.from('settings').select('*');
                 if (!sErr && sData) {
                     sData.forEach(setting => {
                         if (setting.key === 'genshin_bg') appSettings.genshin_bg = setting.value;
                         if (setting.key === 'hsr_bg') appSettings.hsr_bg = setting.value;
                         if (setting.key === 'main_bg') appSettings.main_bg = setting.value;
+                        // MENGAMBIL EMPTY STATE DARI SUPABASE SETTINGS
+                        if (setting.key === 'empty_state_img') appSettings.empty_state_img = setting.value;
                     });
                     
                     // Apply Main Background jika ada datanya di Supabase
@@ -1056,6 +1090,184 @@
                 toast.classList.remove('translate-y-0', 'opacity-100');
                 toast.classList.add('-translate-y-20', 'opacity-0');
             }, 3500);
+        }
+
+        // ==========================================
+        // 6. FITUR BARU: LOGIKA UNIVERSAL SEARCH & ADMIN ASSET UPLOAD
+        // ==========================================
+        let searchTimeout;
+        const searchInput = document.getElementById('searchInput');
+        const searchDropdown = document.getElementById('searchDropdown');
+        const searchResultsArea = document.getElementById('searchResultsArea');
+        const searchSpinner = document.getElementById('searchSpinner');
+
+        // Menutup dropdown jika user klik di luar kotak pencarian
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('searchContainer');
+            if (container && !container.contains(e.target)) {
+                searchDropdown.classList.add('hidden');
+            }
+        });
+
+        function debounceSearch(event) {
+            const query = event.target.value.trim().toLowerCase();
+            
+            if (!query) {
+                searchDropdown.classList.add('hidden');
+                searchSpinner.classList.add('hidden');
+                return;
+            }
+
+            searchSpinner.classList.remove('hidden');
+            searchDropdown.classList.add('hidden'); 
+
+            clearTimeout(searchTimeout);
+            
+            searchTimeout = setTimeout(() => {
+                executeLocalSearch(query);
+            }, 400); 
+        }
+
+        function executeLocalSearch(query) {
+            // Pencarian di array friendsList
+            const matchedFriends = friendsList.filter(f => 
+                (f.name && f.name.toLowerCase().includes(query)) ||
+                (f.description && f.description.toLowerCase().includes(query))
+            );
+
+            // Pencarian di array memories
+            const matchedMemories = memories.filter(m => 
+                (m.description && m.description.toLowerCase().includes(query)) ||
+                (m.friendName && m.friendName.toLowerCase().includes(query))
+            );
+
+            renderSearchResultsUI(query, matchedFriends, matchedMemories);
+            
+            searchSpinner.classList.add('hidden');
+            searchDropdown.classList.remove('hidden');
+        }
+
+        // FUNGSI KHUSUS ADMIN UNTUK MENGGANTI GAMBAR EMPTY STATE
+        async function handleUpdateEmptyStateAsset() {
+            if (!currentUser) return;
+
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            
+            fileInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                showToast("Updating asset in Irminsul...");
+                try {
+                    // Upload ke folder 'assets' di storage kamu
+                    const publicUrl = await uploadKeStorage(file, 'assets');
+                    
+                    // Simpan URL-nya ke tabel settings
+                    const { error } = await _supabase
+                        .from('settings')
+                        .upsert({ key: 'empty_state_img', value: publicUrl }, { onConflict: 'key' });
+                    
+                    if (error) throw error;
+                    
+                    appSettings.empty_state_img = publicUrl; // Update state lokal
+                    showToast("Asset updated successfully!");
+                    
+                    // Render ulang dropdown untuk melihat perubahan langsung
+                    executeLocalSearch(searchInput.value.trim().toLowerCase());
+                } catch (err) {
+                    alert("Upload failed: " + err.message);
+                }
+            };
+            fileInput.click();
+        }
+
+        function renderSearchResultsUI(query, friends, mems) {
+            if (friends.length === 0 && mems.length === 0) {
+                // Tampilan Empty State yang Dinamis
+                searchResultsArea.innerHTML = `
+                    <div class="py-8 text-center text-genshin-light/50 group relative">
+                        <!-- Tombol edit muncul jika admin login & di-hover -->
+                        ${currentUser ? `
+                            <div onclick="handleUpdateEmptyStateAsset()" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl cursor-pointer transition-opacity z-10">
+                                <span class="text-[10px] font-bold text-genshin-gold border border-genshin-gold px-2 py-1 rounded">CHANGE IMAGE</span>
+                            </div>
+                        ` : ''}
+
+                        <!-- Gambar diambil dari appSettings -->
+                        <img src="${appSettings.empty_state_img}" alt="Empty Archive" class="w-16 h-16 mx-auto mb-3 opacity-90 drop-shadow-[0_0_10px_rgba(211,188,142,0.2)]" onerror="this.outerHTML='<svg class=\\'w-16 h-16 mx-auto mb-3 opacity-50 text-genshin-gold\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\\' /></svg>'">
+                        
+                        <p class="text-sm">No record found for "<span class="text-genshin-gold">${query}</span>"</p>
+                        <p class="text-[10px] mt-1">Try searching another memory or name.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            // Render Grup 1: Companion / Teman
+            if (friends.length > 0) {
+                html += `<div class="mb-2">
+                    <h4 class="text-[10px] font-bold tracking-widest text-genshin-gold/70 uppercase px-3 mb-2">Companions Profile</h4>
+                    <div class="space-y-1">`;
+                
+                friends.forEach(f => {
+                    html += `
+                        <div onclick="handleSearchClick('friend', '${f.name}')" class="flex items-center gap-3 p-2 hover:bg-genshin-gold/10 rounded-lg cursor-pointer transition-colors group">
+                            <img src="${f.avatarUrl}" class="w-10 h-10 rounded-full object-cover border border-genshin-gold/30 group-hover:border-genshin-gold transition-colors">
+                            <div class="flex-grow overflow-hidden">
+                                <p class="text-sm font-bold text-genshin-light group-hover:text-genshin-gold transition-colors truncate">${f.name}</p>
+                                <p class="text-[10px] text-genshin-light/50 truncate">${f.description}</p>
+                            </div>
+                            <svg class="w-4 h-4 text-genshin-gold/30 group-hover:text-genshin-gold mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+            // Pembatas jika keduanya ada
+            if (friends.length > 0 && mems.length > 0) {
+                html += `<div class="h-[1px] bg-gradient-to-r from-transparent via-genshin-gold/20 to-transparent my-3"></div>`;
+            }
+
+            // Render Grup 2: Memories / Foto
+            if (mems.length > 0) {
+                html += `<div>
+                    <h4 class="text-[10px] font-bold tracking-widest text-genshin-gold/70 uppercase px-3 mb-2">Journey Logs</h4>
+                    <div class="space-y-1">`;
+                
+                mems.forEach(m => {
+                    html += `
+                        <div onclick="handleSearchClick('memory', '${m.imgUrl}')" class="flex items-center gap-3 p-2 hover:bg-genshin-gold/10 rounded-lg cursor-pointer transition-colors group">
+                            <div class="w-12 h-10 rounded-md overflow-hidden border border-genshin-gold/30 group-hover:border-genshin-gold flex-shrink-0">
+                                <img src="${m.imgUrl}" class="w-full h-full object-cover">
+                            </div>
+                            <div class="flex-grow overflow-hidden">
+                                <p class="text-[10px] text-genshin-gold mb-0.5 font-bold uppercase tracking-wider">${m.game === 'Genshin Impact' ? 'Teyvat' : 'Astral'} ${m.friendName ? `• w/ ${m.friendName}` : ''}</p>
+                                <p class="text-xs text-genshin-light/80 truncate">${m.description}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+            searchResultsArea.innerHTML = html;
+        }
+
+        // Aksi ketika hasil pencarian diklik
+        function handleSearchClick(type, data) {
+            searchInput.value = '';
+            searchDropdown.classList.add('hidden');
+
+            if (type === 'friend') {
+                renderView('friendDetail', data);
+            } else if (type === 'memory') {
+                openLightbox(data, null); 
+            }
         }
     </script>
 </body>
