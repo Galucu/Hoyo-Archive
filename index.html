@@ -170,15 +170,29 @@
                 <!-- Logo -->
                 <div class="flex items-center gap-3 cursor-pointer" onclick="renderView('menu')">
                     <svg class="w-6 h-6 text-genshin-gold animate-star-twinkle" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/></svg>
-                    <h1 class="text-xl font-bold text-hoyo-gold tracking-widest uppercase">HoYo Archive</h1>
+                    <h1 class="text-xl font-bold text-hoyo-gold tracking-widest uppercase hidden sm:block">HoYo Archive</h1>
                 </div>
             </div>
 
-            <!-- Action Button -->
-            <button onclick="openModal()" class="hoyo-btn px-6 py-2.5 rounded-full font-bold tracking-wide flex items-center gap-2 text-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                ADD MEMORY
-            </button>
+            <!-- Action Buttons (Login/Add) -->
+            <div class="flex items-center gap-3">
+                <!-- Button for Visitors to Login -->
+                <button id="btnNavLogin" onclick="openLoginModal()" class="flex items-center gap-2 text-genshin-light/50 hover:text-genshin-gold transition-colors px-3 py-2 rounded-full border border-transparent hover:border-genshin-gold/30">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    <span class="text-xs font-bold tracking-widest hidden sm:block">LOGIN</span>
+                </button>
+
+                <!-- Button for Owner to Logout (Hidden by default) -->
+                <button id="btnNavLogout" onclick="handleLogout()" class="hidden items-center gap-2 text-red-400 hover:text-red-300 transition-colors px-3 py-2 rounded-full border border-transparent hover:border-red-900/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                </button>
+
+                <!-- Button for Owner to Add Memory (Hidden by default) -->
+                <button id="btnNavAddMemory" onclick="openModal()" class="hidden hoyo-btn px-6 py-2.5 rounded-full font-bold tracking-wide flex items-center gap-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    ADD MEMORY
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -186,6 +200,40 @@
     <main class="max-w-7xl mx-auto p-6 mt-4 min-h-[75vh]" id="appRoot">
         <!-- Content rendered by JS -->
     </main>
+
+    <!-- ================= MODAL: LOGIN ================= -->
+    <div id="loginModal" class="fixed inset-0 bg-black/95 backdrop-blur-xl z-[60] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="hoyo-panel p-8 rounded-2xl w-full max-w-sm transform scale-95 transition-transform duration-300 shadow-[0_0_50px_rgba(0,0,0,0.8)]" id="loginModalContent">
+            
+            <div class="flex justify-between items-center mb-6 border-b border-genshin-gold/20 pb-4 relative">
+                <div class="absolute -bottom-[1px] left-0 w-1/3 h-[1px] bg-genshin-gold"></div>
+                <h3 class="text-xl font-bold text-genshin-light tracking-wide flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-genshin-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" /></svg>
+                    Owner Login
+                </h3>
+                <button onclick="closeLoginModal()" class="text-genshin-gold/50 hover:text-genshin-gold transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold tracking-widest text-genshin-gold/70 uppercase mb-2">Email</label>
+                        <input type="email" id="loginEmail" required placeholder="owner@email.com" class="hoyo-input w-full rounded-lg px-4 py-3">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold tracking-widest text-genshin-gold/70 uppercase mb-2">Password</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••" class="hoyo-input w-full rounded-lg px-4 py-3">
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-5 border-t border-genshin-gold/10">
+                    <button type="submit" id="btnLoginBtn" class="hoyo-btn w-full py-3 rounded-full font-bold tracking-widest">ACCESS ARCHIVE</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- ================= MODAL: ADD MEMORY (PHOTO) ================= -->
     <div id="addModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
@@ -312,6 +360,8 @@
         // ==========================================
         // 1. SUPABASE CLOUD CONFIGURATION
         // ==========================================
+        
+        // UBAH DI SINI JIKA PERLU (Saran: Biarkan saja jika sudah terhubung ke database-mu)
         const SUPABASE_URL = 'https://lyohztycfoeiavrthshb.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5b2h6dHljZm9laWF2cnRoc2hiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NDE2NTQsImV4cCI6MjA4OTUxNzY1NH0.tke4BeUUaTpffzuUMyE_BIcOoH33a6TbkoqMGQdBqgA';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -320,12 +370,101 @@
         let memories = [];
         let friendsList = [];
         let currentState = { view: 'menu', selectedGame: null, selectedFriend: null };
+        
+        // Variabel untuk melacak status login (Apakah ini Owner atau Visitor?)
+        let currentUser = null; 
+
+        // ==========================================
+        // 1.5 AUTHENTICATION (LOGIN) SYSTEM
+        // ==========================================
+
+        async function checkAuthStatus() {
+            // Cek apakah ada user yang sedang login di sesi ini
+            const { data: { user } } = await _supabase.auth.getUser();
+            currentUser = user;
+            updateNavbarUI();
+        }
+
+        function updateNavbarUI() {
+            const btnLogin = document.getElementById('btnNavLogin');
+            const btnLogout = document.getElementById('btnNavLogout');
+            const btnAddMem = document.getElementById('btnNavAddMemory');
+
+            if (currentUser) {
+                // Jika Owner login: Sembunyikan Login, Munculkan Logout & Tambah Memory
+                btnLogin.classList.add('hidden');
+                btnLogout.classList.remove('hidden');
+                btnLogout.classList.add('flex');
+                btnAddMem.classList.remove('hidden');
+            } else {
+                // Jika Visitor: Munculkan Login, Sembunyikan Logout & Tambah Memory
+                btnLogin.classList.remove('hidden');
+                btnLogout.classList.add('hidden');
+                btnLogout.classList.remove('flex');
+                btnAddMem.classList.add('hidden');
+            }
+        }
+
+        function openLoginModal() {
+            const modal = document.getElementById('loginModal');
+            const content = document.getElementById('loginModalContent');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => content.classList.remove('scale-95'), 10);
+        }
+
+        function closeLoginModal() {
+            const modal = document.getElementById('loginModal');
+            const content = document.getElementById('loginModalContent');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('opacity-0', 'pointer-events-none'), 300);
+        }
+
+        async function handleLoginSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('btnLoginBtn');
+            const originalText = btn.innerText;
+
+            btn.innerText = "AUTHENTICATING...";
+            btn.disabled = true;
+
+            // Proses verifikasi ke Supabase
+            const { data, error } = await _supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                alert("Login Gagal: " + error.message);
+                btn.innerText = originalText;
+                btn.disabled = false;
+            } else {
+                // Jika sukses, perbarui status, tutup modal, dan render ulang web
+                closeLoginModal();
+                showToast("Welcome back, Archive Owner.");
+                await checkAuthStatus();
+                document.getElementById('loginForm').reset();
+                renderView(currentState.view, currentState.view === 'game' ? currentState.selectedGame : currentState.selectedFriend);
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function handleLogout() {
+            if(confirm('Are you sure you want to log out and return as a Visitor?')) {
+                await _supabase.auth.signOut();
+                await checkAuthStatus();
+                showToast("You have been logged out.");
+                // Render ulang untuk menyembunyikan tombol-tombol admin
+                renderView(currentState.view, currentState.view === 'game' ? currentState.selectedGame : currentState.selectedFriend);
+            }
+        }
 
         // ==========================================
         // 2. CLOUD SYNC & REAL-TIME FUNCTIONS
         // ==========================================
         
-        // Fetch data from Database
         async function fetchDataCloud() {
             try {
                 const { data: fData, error: fErr } = await _supabase.from('friends').select('*').order('name');
@@ -336,7 +475,6 @@
                 if (mErr) throw mErr;
                 if (mData) memories = mData;
 
-                // Refresh current UI if not on main menu
                 if (currentState.view !== 'menu') {
                     renderView(currentState.view, currentState.view === 'game' ? currentState.selectedGame : currentState.selectedFriend);
                 }
@@ -345,7 +483,6 @@
             }
         }
 
-        // Real-time Listener
         function setupRealtime() {
             _supabase.channel('public-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'memories' }, payload => { fetchDataCloud(); })
@@ -353,7 +490,6 @@
                 .subscribe();
         }
 
-        // Upload File Function to Storage Bucket 'foto-user'
         async function uploadKeStorage(file, folder) {
             const ext = file.name.split('.').pop();
             const fileName = `${folder}/${Date.now()}_img.${ext}`;
@@ -365,10 +501,12 @@
             return urlData.publicUrl;
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            renderView('menu'); // Display base UI
-            fetchDataCloud();   // Pull data from cloud
-            setupRealtime();    // Setup real-time listener
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Cek status login DULU sebelum merender halaman agar sistem tahu harus memunculkan tombol edit atau tidak
+            await checkAuthStatus();
+            renderView('menu'); 
+            fetchDataCloud();  
+            setupRealtime();   
         });
 
         // ==========================================
@@ -438,6 +576,14 @@
         // --- GENSHIN DASHBOARD ---
         function renderGenshinDashboard(root) {
             const journeyData = memories.filter(m => m.game === 'Genshin Impact' && m.category === 'My Journey');
+            
+            // Logika UI: Hanya Owner yang bisa melihat tombol "New Companion"
+            const btnAddCompanionHTML = currentUser ? `
+                <button onclick="openFriendModal()" class="text-xs border border-genshin-gold/50 text-genshin-gold px-4 py-2 rounded-full hover:bg-genshin-gold/10 hover:text-white transition-colors flex items-center gap-1 font-bold tracking-wider">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    NEW COMPANION
+                </button>
+            ` : '';
 
             root.innerHTML = `
                 <div class="mb-12 mt-6 animate-slide-up">
@@ -454,7 +600,7 @@
                             <h3 class="text-2xl font-bold tracking-widest uppercase text-genshin-light">My Journey</h3>
                         </div>
                         <div class="grid grid-cols-1 gap-8">
-                            ${journeyData.length === 0 ? '<p class="text-genshin-gold/40 italic">No personal journey logs yet. Click "Add Memory".</p>' : journeyData.map(m => createCardHTML(m)).join('')}
+                            ${journeyData.length === 0 ? '<p class="text-genshin-gold/40 italic">No personal journey logs yet.</p>' : journeyData.map(m => createCardHTML(m)).join('')}
                         </div>
                     </div>
 
@@ -465,13 +611,10 @@
                                 <svg class="w-6 h-6 text-genshin-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
                                 Companion List
                             </h3>
-                            <button onclick="openFriendModal()" class="text-xs border border-genshin-gold/50 text-genshin-gold px-4 py-2 rounded-full hover:bg-genshin-gold/10 hover:text-white transition-colors flex items-center gap-1 font-bold tracking-wider">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                                NEW COMPANION
-                            </button>
+                            ${btnAddCompanionHTML}
                         </div>
                         <div class="grid grid-cols-1 gap-4">
-                            ${friendsList.length === 0 ? '<p class="text-genshin-gold/40 italic">Companion list is empty. Please add a new companion from the cloud.</p>' : friendsList.map(f => `
+                            ${friendsList.length === 0 ? '<p class="text-genshin-gold/40 italic">Companion list is empty.</p>' : friendsList.map(f => `
                                 <div onclick="renderView('friendDetail', '${f.name}')" class="hoyo-panel p-4 rounded-xl cursor-pointer hover:-translate-y-1 transition-transform group flex items-center gap-4 border-l-4 border-l-transparent hover:border-l-genshin-gold">
                                     <img src="${f.avatarUrl}" class="w-14 h-14 rounded-full object-cover border-2 border-genshin-gold/50 shadow-[0_0_10px_rgba(211,188,142,0.2)]" onerror="this.src='https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80'">
                                     <div class="flex-grow">
@@ -499,7 +642,7 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-fade-in" style="animation-delay: 0.2s;">
-                    ${journeyData.length === 0 ? '<div class="col-span-full text-center text-hsr-blue/40 italic mt-10">No data yet. Please input a new memory.</div>' : journeyData.map(m => createCardHTML(m)).join('')}
+                    ${journeyData.length === 0 ? '<div class="col-span-full text-center text-hsr-blue/40 italic mt-10">No data yet.</div>' : journeyData.map(m => createCardHTML(m)).join('')}
                 </div>
             `;
         }
@@ -514,6 +657,27 @@
                 goBack();
                 return;
             }
+
+            // Logika UI: Tombol Edit/Delete & Add Memory untuk Companion hanya muncul jika Owner login
+            const adminControlsHTML = currentUser ? `
+                <div class="flex gap-2 w-full mt-2">
+                    <button onclick="openFriendModal(${friend.id})" class="hoyo-btn flex-1 py-3 rounded-xl font-bold tracking-widest text-xs flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        EDIT
+                    </button>
+                    <button onclick="deleteFriend(${friend.id})" class="bg-red-900/40 border border-red-500/50 text-red-300 hover:bg-red-700 hover:text-white flex-1 py-3 rounded-xl font-bold tracking-widest text-xs flex items-center justify-center gap-2 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        DELETE
+                    </button>
+                </div>
+            ` : '';
+
+            const btnAddGalleryMemoryHTML = currentUser ? `
+                <button onclick="openModal('${friend.name}')" class="text-xs border border-genshin-gold/50 text-genshin-gold px-4 py-2 rounded-full hover:bg-genshin-gold/10 hover:text-white transition-colors flex items-center gap-1 font-bold tracking-wider">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    ADD MEMORY
+                </button>
+            ` : '';
 
             root.innerHTML = `
                 <div class="mb-10 mt-6 animate-slide-up flex items-center justify-between">
@@ -534,17 +698,7 @@
                             <h3 class="text-2xl font-bold text-genshin-light mb-4 tracking-widest uppercase">${friend.name}</h3>
                             <p class="text-genshin-light/80 text-sm leading-relaxed mb-6">${friend.description}</p>
                             
-                            <!-- Edit & Delete Buttons -->
-                            <div class="flex gap-2 w-full mt-2">
-                                <button onclick="openFriendModal(${friend.id})" class="hoyo-btn flex-1 py-3 rounded-xl font-bold tracking-widest text-xs flex items-center justify-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                    EDIT
-                                </button>
-                                <button onclick="deleteFriend(${friend.id})" class="bg-red-900/40 border border-red-500/50 text-red-300 hover:bg-red-700 hover:text-white flex-1 py-3 rounded-xl font-bold tracking-widest text-xs flex items-center justify-center gap-2 transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    DELETE
-                                </button>
-                            </div>
+                            ${adminControlsHTML}
                         </div>
                     </div>
 
@@ -555,10 +709,7 @@
                                 <svg class="w-5 h-5 text-genshin-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/></svg>
                                 Memory Gallery
                             </h3>
-                            <button onclick="openModal('${friend.name}')" class="text-xs border border-genshin-gold/50 text-genshin-gold px-4 py-2 rounded-full hover:bg-genshin-gold/10 hover:text-white transition-colors flex items-center gap-1 font-bold tracking-wider">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                                ADD MEMORY
-                            </button>
+                            ${btnAddGalleryMemoryHTML}
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             ${friendData.length === 0 ? '<p class="text-genshin-gold/40 italic col-span-full">No photo collection with this companion yet.</p>' : friendData.map(m => createCardHTML(m)).join('')}
@@ -570,6 +721,13 @@
 
         // --- HELPER: HTML CARD ---
         function createCardHTML(memory) {
+            // Logika UI: Tombol hapus (Tong Sampah) di setiap foto hanya muncul untuk Owner
+            const deleteBtnHTML = currentUser ? `
+                <button onclick="deleteMemory(${memory.id}, event)" class="absolute top-3 right-3 bg-red-900/80 border border-red-500/50 hover:bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-md shadow-[0_0_15px_rgba(220,38,38,0.5)] z-10" title="Delete Memory">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+            ` : '';
+
             return `
                 <div class="hoyo-frame group animate-fade-in">
                     <div class="hoyo-frame-inner bg-genshin-bg h-full flex flex-col">
@@ -584,10 +742,7 @@
                                 </div>
                             </div>
                             
-                            <!-- Cloud Delete Button -->
-                            <button onclick="deleteMemory(${memory.id}, event)" class="absolute top-3 right-3 bg-red-900/80 border border-red-500/50 hover:bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-md shadow-[0_0_15px_rgba(220,38,38,0.5)] z-10" title="Delete Memory">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            </button>
+                            ${deleteBtnHTML}
                         </div>
 
                         <div class="p-6 flex-grow relative">
