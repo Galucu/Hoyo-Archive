@@ -7,6 +7,9 @@
     <meta name="referrer" content="no-referrer">
     <title>Tsukasa's SavePoint - Cloud Journey Archive</title>
     
+    <!-- Dynamic Favicon (Default adalah SVG Bintang HoYo) -->
+    <link rel="icon" id="favicon-link" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2QzYmM4ZSI+PHBhdGggZD0iTTEyIDJMMTQuNSA5LjVMMjIgMTJMMTQuNSAxNC41TDEyIDIyTDkuNSAxNC41TDIgMTJMOS41IDkuNUwxMiAyWiIvPjwvc3ZnPg==">
+    
     <!-- Supabase Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -196,10 +199,24 @@
                     <span class="text-sm font-semibold tracking-wider uppercase">BACK</span>
                 </button>
                 
-                <!-- Logo -->
-                <div class="flex items-center gap-3 cursor-pointer" onclick="renderView('menu')">
-                    <svg class="w-6 h-6 text-genshin-gold animate-star-twinkle" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/></svg>
-                    <h1 class="text-xl font-bold text-hoyo-gold tracking-widest uppercase hidden sm:block">Tsukasa's SavePoint</h1>
+                <!-- Logo & Title -->
+                <div class="flex items-center gap-3">
+                    <!-- Favicon/Logo Group -->
+                    <div class="relative group" title="Change Website Icon">
+                        <div class="cursor-pointer flex items-center justify-center w-6 h-6" onclick="renderView('menu')">
+                            <!-- User Uploaded Favicon -->
+                            <img id="headerFavicon" src="" class="w-full h-full object-cover rounded-md shadow-[0_0_10px_rgba(211,188,142,0.3)] hidden" alt="Logo">
+                            <!-- Default Star SVG -->
+                            <svg id="headerDefaultSvg" class="w-full h-full text-genshin-gold animate-star-twinkle" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/></svg>
+                        </div>
+                        
+                        <!-- Admin Edit Overlay -->
+                        <div id="adminFaviconEdit" onclick="handleUpdateFavicon(event)" class="absolute -inset-2 bg-black/80 rounded-full flex items-center justify-center opacity-0 transition-opacity hidden group-hover:opacity-100 z-10 cursor-pointer border border-genshin-gold/50 shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-genshin-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </div>
+                    </div>
+
+                    <h1 class="text-xl font-bold text-hoyo-gold tracking-widest uppercase hidden sm:block cursor-pointer" onclick="renderView('menu')">Tsukasa's SavePoint</h1>
                 </div>
             </div>
 
@@ -424,11 +441,11 @@
 
         // Variable untuk menyimpan Setting Background dari Cloud
         let appSettings = {
-            main_bg: '', // Tambahan untuk Main Background
+            main_bg: '', 
             genshin_bg: 'https://images.unsplash.com/photo-1580136608260-4eb11f4b24fe?auto=format&fit=crop&q=80',
             hsr_bg: 'https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?auto=format&fit=crop&q=80',
-            // DEFAULT FALLBACK EMPTY STATE IMAGE
-            empty_state_img: 'https://upload-os-bbs.hoyolab.com/upload/2021/08/11/17096570/8628bfcc47bc483af76fcb2fc809d435_401676839335602497.png'
+            empty_state_img: 'https://upload-os-bbs.hoyolab.com/upload/2021/08/11/17096570/8628bfcc47bc483af76fcb2fc809d435_401676839335602497.png',
+            favicon_img: '' // STATE BARU UNTUK FAVICON
         };
 
         // ==========================================
@@ -445,17 +462,20 @@
             const btnLogin = document.getElementById('btnNavLogin');
             const btnLogout = document.getElementById('btnNavLogout');
             const btnAddMem = document.getElementById('btnNavAddMemory');
+            const adminFaviconEdit = document.getElementById('adminFaviconEdit'); // Tombol edit logo
 
             if (currentUser) {
                 btnLogin.classList.add('hidden');
                 btnLogout.classList.remove('hidden');
                 btnLogout.classList.add('flex');
                 btnAddMem.classList.remove('hidden');
+                if(adminFaviconEdit) adminFaviconEdit.classList.remove('hidden');
             } else {
                 btnLogin.classList.remove('hidden');
                 btnLogout.classList.add('hidden');
                 btnLogout.classList.remove('flex');
                 btnAddMem.classList.add('hidden');
+                if(adminFaviconEdit) adminFaviconEdit.classList.add('hidden');
             }
         }
 
@@ -518,20 +538,31 @@
         
         async function fetchDataCloud() {
             try {
-                // Fetch Settings untuk Background Menu, Main BG, dan Empty State
+                // Fetch Settings
                 const { data: sData, error: sErr } = await _supabase.from('settings').select('*');
                 if (!sErr && sData) {
                     sData.forEach(setting => {
                         if (setting.key === 'genshin_bg') appSettings.genshin_bg = setting.value;
                         if (setting.key === 'hsr_bg') appSettings.hsr_bg = setting.value;
                         if (setting.key === 'main_bg') appSettings.main_bg = setting.value;
-                        // MENGAMBIL EMPTY STATE DARI SUPABASE SETTINGS
                         if (setting.key === 'empty_state_img') appSettings.empty_state_img = setting.value;
+                        // AMBIL DATA FAVICON
+                        if (setting.key === 'favicon_img') appSettings.favicon_img = setting.value;
                     });
                     
-                    // Apply Main Background jika ada datanya di Supabase
+                    // Apply Settings ke UI
                     if(appSettings.main_bg) {
                         document.getElementById('main-bg-layer').style.backgroundImage = `url('${appSettings.main_bg}')`;
+                    }
+                    if (appSettings.favicon_img) {
+                        document.getElementById('favicon-link').href = appSettings.favicon_img;
+                        const headerFavicon = document.getElementById('headerFavicon');
+                        headerFavicon.src = appSettings.favicon_img;
+                        headerFavicon.classList.remove('hidden');
+                        document.getElementById('headerDefaultSvg').classList.add('hidden');
+                    } else {
+                        document.getElementById('headerFavicon').classList.add('hidden');
+                        document.getElementById('headerDefaultSvg').classList.remove('hidden');
                     }
                 }
 
@@ -544,7 +575,7 @@
                 if (mErr) throw mErr;
                 if (mData) memories = mData;
 
-                // Render ulang jika sedang di menu untuk update background
+                // Render ulang
                 if (currentState.view === 'menu') {
                     renderView('menu');
                 } else {
@@ -1129,13 +1160,11 @@
         }
 
         function executeLocalSearch(query) {
-            // Pencarian di array friendsList
             const matchedFriends = friendsList.filter(f => 
                 (f.name && f.name.toLowerCase().includes(query)) ||
                 (f.description && f.description.toLowerCase().includes(query))
             );
 
-            // Pencarian di array memories
             const matchedMemories = memories.filter(m => 
                 (m.description && m.description.toLowerCase().includes(query)) ||
                 (m.friendName && m.friendName.toLowerCase().includes(query))
@@ -1147,7 +1176,7 @@
             searchDropdown.classList.remove('hidden');
         }
 
-        // FUNGSI KHUSUS ADMIN UNTUK MENGGANTI GAMBAR EMPTY STATE
+        // --- FUNGSI ADMIN: GANTI GAMBAR EMPTY STATE ---
         async function handleUpdateEmptyStateAsset() {
             if (!currentUser) return;
 
@@ -1161,21 +1190,60 @@
                 
                 showToast("Updating asset in Irminsul...");
                 try {
-                    // Upload ke folder 'assets' di storage kamu
                     const publicUrl = await uploadKeStorage(file, 'assets');
                     
-                    // Simpan URL-nya ke tabel settings
                     const { error } = await _supabase
                         .from('settings')
                         .upsert({ key: 'empty_state_img', value: publicUrl }, { onConflict: 'key' });
                     
                     if (error) throw error;
                     
-                    appSettings.empty_state_img = publicUrl; // Update state lokal
+                    appSettings.empty_state_img = publicUrl; 
                     showToast("Asset updated successfully!");
                     
-                    // Render ulang dropdown untuk melihat perubahan langsung
                     executeLocalSearch(searchInput.value.trim().toLowerCase());
+                } catch (err) {
+                    alert("Upload failed: " + err.message);
+                }
+            };
+            fileInput.click();
+        }
+
+        // --- FUNGSI ADMIN: GANTI FAVICON & LOGO HEADER ---
+        async function handleUpdateFavicon(event) {
+            if(event) event.stopPropagation(); // Mencegah logo mengarahkan ke halaman menu saat di klik admin
+            if (!currentUser) return;
+
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            
+            fileInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                showToast("Updating Favicon in Irminsul...");
+                try {
+                    // Upload ke folder assets
+                    const publicUrl = await uploadKeStorage(file, 'assets');
+                    
+                    // Simpan ke database setting
+                    const { error } = await _supabase
+                        .from('settings')
+                        .upsert({ key: 'favicon_img', value: publicUrl }, { onConflict: 'key' });
+                    
+                    if (error) throw error;
+                    
+                    // Update state & UI secara langsung
+                    appSettings.favicon_img = publicUrl; 
+                    document.getElementById('favicon-link').href = publicUrl;
+                    
+                    const headerFavicon = document.getElementById('headerFavicon');
+                    headerFavicon.src = publicUrl;
+                    headerFavicon.classList.remove('hidden');
+                    document.getElementById('headerDefaultSvg').classList.add('hidden');
+                    
+                    showToast("Favicon updated successfully!");
                 } catch (err) {
                     alert("Upload failed: " + err.message);
                 }
@@ -1185,17 +1253,14 @@
 
         function renderSearchResultsUI(query, friends, mems) {
             if (friends.length === 0 && mems.length === 0) {
-                // Tampilan Empty State yang Dinamis
                 searchResultsArea.innerHTML = `
                     <div class="py-8 text-center text-genshin-light/50 group relative">
-                        <!-- Tombol edit muncul jika admin login & di-hover -->
                         ${currentUser ? `
                             <div onclick="handleUpdateEmptyStateAsset()" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl cursor-pointer transition-opacity z-10">
                                 <span class="text-[10px] font-bold text-genshin-gold border border-genshin-gold px-2 py-1 rounded">CHANGE IMAGE</span>
                             </div>
                         ` : ''}
 
-                        <!-- Gambar diambil dari appSettings -->
                         <img src="${appSettings.empty_state_img}" alt="Empty Archive" class="w-16 h-16 mx-auto mb-3 opacity-90 drop-shadow-[0_0_10px_rgba(211,188,142,0.2)]" onerror="this.outerHTML='<svg class=\\'w-16 h-16 mx-auto mb-3 opacity-50 text-genshin-gold\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\\' /></svg>'">
                         
                         <p class="text-sm">No record found for "<span class="text-genshin-gold">${query}</span>"</p>
@@ -1207,7 +1272,6 @@
 
             let html = '';
 
-            // Render Grup 1: Companion / Teman
             if (friends.length > 0) {
                 html += `<div class="mb-2">
                     <h4 class="text-[10px] font-bold tracking-widest text-genshin-gold/70 uppercase px-3 mb-2">Companions Profile</h4>
@@ -1228,12 +1292,10 @@
                 html += `</div></div>`;
             }
 
-            // Pembatas jika keduanya ada
             if (friends.length > 0 && mems.length > 0) {
                 html += `<div class="h-[1px] bg-gradient-to-r from-transparent via-genshin-gold/20 to-transparent my-3"></div>`;
             }
 
-            // Render Grup 2: Memories / Foto
             if (mems.length > 0) {
                 html += `<div>
                     <h4 class="text-[10px] font-bold tracking-widest text-genshin-gold/70 uppercase px-3 mb-2">Journey Logs</h4>
@@ -1258,7 +1320,6 @@
             searchResultsArea.innerHTML = html;
         }
 
-        // Aksi ketika hasil pencarian diklik
         function handleSearchClick(type, data) {
             searchInput.value = '';
             searchDropdown.classList.add('hidden');
